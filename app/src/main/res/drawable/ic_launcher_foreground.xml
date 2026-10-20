@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer Gauge Tachometer Arc in Neon Emerald (Safe area center 54,54) -->
+    <path
+        android:strokeColor="#00E5A3"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M 34,70 A 24,24 0 1,1 74,70" />
+    
+    <!-- Accent Secondary Arc in Electric Cyan -->
+    <path
+        android:strokeColor="#00D2FF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M 38,66 A 19,19 0 1,1 70,66" />
+
+    <!-- Center Pulse / Telemetry Waveform -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineJoin="round"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M 32,54 L 43,54 L 47,44 L 52,64 L 57,48 L 61,54 L 76,54" />
+
+    <!-- Digital Speedometer / Gauge Center Hub -->
+    <path
+        android:fillColor="#00E5A3"
+        android:pathData="M 54,51 A 3,3 0 1,1 53.9,51" />
+
+    <!-- Tachometer Tick Dots -->
+    <path
+        android:fillColor="#00D2FF"
+        android:pathData="M 30,54 A 1.8,1.8 0 1,1 29.9,54" />
+    <path
+        android:fillColor="#00E5A3"
+        android:pathData="M 54,26 A 1.8,1.8 0 1,1 53.9,26" />
+    <path
+        android:fillColor="#00D2FF"
+        android:pathData="M 78,54 A 1.8,1.8 0 1,1 77.9,54" />
+</vector>

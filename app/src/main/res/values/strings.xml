@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">OmniDeck</string>
+    <string name="app_subtitle">PC Telemetry Companion</string>
+    <string name="gaming_hud_title">Gaming Performance</string>
+    <string name="gpu_title">GPU Diagnostics</string>
+    <string name="cpu_title">CPU Diagnostics</string>
+    <string name="power_title">System Power Matrix</string>
+    <string name="nvme_title">NVMe &amp; Storage</string>
+    <string name="network_title">Network Throughput</string>
+    <string name="daemon_setup_title">Linux Host Setup</string>
+    <string name="connection_status_connected">Connected (Live Stream)</string>
+    <string name="connection_status_usb">Connected (USB Serial)</string>
+    <string name="connection_status_tcp">Connected (ADB/TCP 8088)</string>
+    <string name="connection_status_demo">Demo Simulation Mode</string>
+    <string name="connection_status_waiting">Waiting for PC connection…</string>
+</resources>
