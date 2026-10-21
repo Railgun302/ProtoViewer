@@ -30,7 +30,7 @@ fun MetricGauge(
     maxValue: Float = 100f,
     label: String,
     unit: String = "%",
-    sizeDp: Dp = 92.dp,
+    sizeDp: Dp = 64.dp,
     primaryColor: Color = CyberEmerald,
     modifier: Modifier = Modifier
 ) {
@@ -41,12 +41,17 @@ fun MetricGauge(
         else -> primaryColor
     }
 
+    val isSmall = sizeDp <= 70.dp
+    val strokeWidthDp = if (isSmall) 5.dp else 7.dp
+    val textSp = if (isSmall) 12.sp else 15.sp
+    val labelSp = if (isSmall) 8.sp else 9.sp
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier.size(sizeDp)
     ) {
         Canvas(modifier = Modifier.size(sizeDp)) {
-            val strokeWidth = 7.dp.toPx()
+            val strokeWidth = strokeWidthDp.toPx()
             val arcSize = size.width - strokeWidth
             val arcOffset = Offset(strokeWidth / 2f, strokeWidth / 2f)
 
@@ -79,13 +84,13 @@ fun MetricGauge(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "${value.toInt()}$unit",
-                fontSize = 15.sp,
+                fontSize = textSp,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary
             )
             Text(
                 text = label,
-                fontSize = 9.sp,
+                fontSize = labelSp,
                 color = TextMuted
             )
         }

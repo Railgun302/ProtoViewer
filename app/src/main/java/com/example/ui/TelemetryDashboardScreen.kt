@@ -7,6 +7,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -23,10 +24,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FitScreen
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Tune
@@ -38,6 +43,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -48,6 +56,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.connection.ConnectionMode
@@ -76,14 +85,16 @@ import com.example.ui.theme.VoltYellow
 @Composable
 fun TelemetryDashboardScreen(
     viewModel: TelemetryViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onToggleFullscreen: (Boolean) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val context = LocalContext.current
+    var isFullscreenActive by remember { mutableStateOf(true) }
 
-    // Keep screen awake if enabled (critical for dedicated Moto Z companion monitor)
+    // Keep screen awake (essential for companion desktop display)
     DisposableEffect(uiState.config.keepScreenAwake) {
         val window = (context as? Activity)?.window
         if (uiState.config.keepScreenAwake) {
@@ -121,8 +132,11 @@ fun TelemetryDashboardScreen(
                     status = uiState.connectionStatus,
                     rateBadge = uiState.config.refreshRate.badge,
                     isLandscape = isLandscape,
-                    isFitMode = uiState.config.forceLandscapeFit,
-                    onToggleFitMode = { viewModel.toggleForceLandscapeFit() },
+                    isFullscreen = isFullscreenActive,
+                    onToggleFullscreen = {
+                        isFullscreenActive = !isFullscreenActive
+                        onToggleFullscreen(isFullscreenActive)
+                    },
                     onOpenSetup = { viewModel.showSetupSheet(true) },
                     onOpenConfig = { viewModel.showConfigSheet(true) }
                 )
@@ -132,89 +146,26 @@ fun TelemetryDashboardScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(horizontal = if (isLandscape) 10.dp else 14.dp)
+                    .padding(horizontal = if (isLandscape) 8.dp else 12.dp)
             ) {
-                if (isLandscape && uiState.config.forceLandscapeFit) {
-                    // Full-Fit Landscape Command Center (Zero scrolling required!)
-                    LandscapeFullFitLayout(
-                        uiState = uiState
-                    )
-                } else if (isLandscape) {
-                    // Scrollable Landscape 2-Column Layout
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        LazyColumn(
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("left_dashboard_column"),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            if (uiState.config.showGamingHud) {
-                                item {
-                                    GamingHudWidget(
-                                        gaming = uiState.snapshot.gaming,
-                                        frametimes = uiState.frametimes
-                                    )
-                                }
-                            }
-                            if (uiState.config.showPowerCard) {
-                                item {
-                                    PowerMatrixWidget(
-                                        power = uiState.snapshot.power,
-                                        powerHistory = uiState.powerHistory
-                                    )
-                                }
-                            }
-                            if (uiState.config.showNvmeCard) {
-                                item {
-                                    NvmeStorageWidget(
-                                        nvme = uiState.snapshot.nvme,
-                                        net = uiState.snapshot.net,
-                                        useFahrenheit = uiState.config.useFahrenheit
-                                    )
-                                }
-                            }
-                            item { Spacer(modifier = Modifier.height(16.dp)) }
-                        }
+                val availableWidth = maxWidth
+                val availableHeight = maxHeight
 
-                        LazyColumn(
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag("right_dashboard_column"),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            if (uiState.config.showGpuCard) {
-                                item {
-                                    GpuMetricsWidget(
-                                        gpu = uiState.snapshot.gpu,
-                                        useFahrenheit = uiState.config.useFahrenheit
-                                    )
-                                }
-                            }
-                            if (uiState.config.showCpuCard) {
-                                item {
-                                    CpuMetricsWidget(
-                                        cpu = uiState.snapshot.cpu,
-                                        ram = uiState.snapshot.ram,
-                                        useFahrenheit = uiState.config.useFahrenheit
-                                    )
-                                }
-                            }
-                            item { Spacer(modifier = Modifier.height(16.dp)) }
-                        }
-                    }
+                if (isLandscape) {
+                    // Fully adaptive Landscape Layout that scales to pixel dimensions and supports bidirectional scrolling
+                    LandscapeAdaptiveLayout(
+                        uiState = uiState,
+                        availableWidth = availableWidth,
+                        availableHeight = availableHeight
+                    )
                 } else {
                     // Portrait 1-Column Layout
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(vertical = 8.dp)
+                            .padding(vertical = 4.dp)
                             .testTag("portrait_dashboard_column"),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         if (uiState.config.showGamingHud) {
                             item {
@@ -258,7 +209,7 @@ fun TelemetryDashboardScreen(
                                 )
                             }
                         }
-                        item { Spacer(modifier = Modifier.height(24.dp)) }
+                        item { Spacer(modifier = Modifier.height(20.dp)) }
                     }
                 }
             }
@@ -293,78 +244,95 @@ fun TelemetryDashboardScreen(
 }
 
 /**
- * 3-Panel Full-Fit Landscape Layout where all metrics are visible at once without scrolling!
+ * Adaptive Landscape Layout:
+ * Dynamically computes column width based on display resolution.
+ * If screen width >= 860dp, all 3 columns fit side-by-side with zero horizontal scroll.
+ * If narrower, it enables smooth horizontal scroll so GPU, NVMe, and Power are NEVER unreachable or stretched!
+ * Each column has natural compact cards that don't stretch vertically ("alargados").
  */
 @Composable
-private fun LandscapeFullFitLayout(
-    uiState: TelemetryUiState
+private fun LandscapeAdaptiveLayout(
+    uiState: TelemetryUiState,
+    availableWidth: Dp,
+    availableHeight: Dp
 ) {
+    val horizontalScrollState = rememberScrollState()
+
+    // Determine target column width based on available screen space
+    val targetColWidth = if (availableWidth >= 880.dp) {
+        // Fits comfortably in 3 columns
+        (availableWidth - 24.dp) / 3f
+    } else {
+        // Minimum comfortable readable width for dense hardware widgets
+        275.dp
+    }
+
     Row(
         modifier = Modifier
             .fillMaxSize()
-            .padding(bottom = 6.dp)
-            .testTag("landscape_full_fit_container"),
+            .horizontalScroll(horizontalScrollState)
+            .padding(bottom = 4.dp)
+            .testTag("landscape_adaptive_row"),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Left Column: Gaming HUD + Frametime Graph
+        // Column 1: Gaming HUD & Frametime Graph
         if (uiState.config.showGamingHud) {
-            Box(
+            Column(
                 modifier = Modifier
-                    .weight(1.15f)
+                    .width(targetColWidth)
                     .fillMaxHeight()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 GamingHudWidget(
                     gaming = uiState.snapshot.gaming,
-                    frametimes = uiState.frametimes,
-                    modifier = Modifier.fillMaxHeight()
+                    frametimes = uiState.frametimes
                 )
             }
         }
 
-        // Middle Column: GPU (Top) and CPU (Bottom)
+        // Column 2: GPU Diagnostics & CPU Diagnostics
         Column(
             modifier = Modifier
-                .weight(1.2f)
-                .fillMaxHeight(),
+                .width(targetColWidth)
+                .fillMaxHeight()
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (uiState.config.showGpuCard) {
                 GpuMetricsWidget(
                     gpu = uiState.snapshot.gpu,
-                    useFahrenheit = uiState.config.useFahrenheit,
-                    modifier = Modifier.weight(1f)
+                    useFahrenheit = uiState.config.useFahrenheit
                 )
             }
             if (uiState.config.showCpuCard) {
                 CpuMetricsWidget(
                     cpu = uiState.snapshot.cpu,
                     ram = uiState.snapshot.ram,
-                    useFahrenheit = uiState.config.useFahrenheit,
-                    modifier = Modifier.weight(1f)
+                    useFahrenheit = uiState.config.useFahrenheit
                 )
             }
         }
 
-        // Right Column: Power Matrix (Top) and NVMe/Network (Bottom)
+        // Column 3: System Power Matrix & NVMe Storage / Network
         Column(
             modifier = Modifier
-                .weight(1.15f)
-                .fillMaxHeight(),
+                .width(targetColWidth)
+                .fillMaxHeight()
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (uiState.config.showPowerCard) {
                 PowerMatrixWidget(
                     power = uiState.snapshot.power,
-                    powerHistory = uiState.powerHistory,
-                    modifier = Modifier.weight(1f)
+                    powerHistory = uiState.powerHistory
                 )
             }
             if (uiState.config.showNvmeCard) {
                 NvmeStorageWidget(
                     nvme = uiState.snapshot.nvme,
                     net = uiState.snapshot.net,
-                    useFahrenheit = uiState.config.useFahrenheit,
-                    modifier = Modifier.weight(1f)
+                    useFahrenheit = uiState.config.useFahrenheit
                 )
             }
         }
@@ -376,8 +344,8 @@ private fun DashboardHeader(
     status: ConnectionStatus,
     rateBadge: String,
     isLandscape: Boolean,
-    isFitMode: Boolean,
-    onToggleFitMode: () -> Unit,
+    isFullscreen: Boolean,
+    onToggleFullscreen: () -> Unit,
     onOpenSetup: () -> Unit,
     onOpenConfig: () -> Unit
 ) {
@@ -385,7 +353,7 @@ private fun DashboardHeader(
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 2.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -410,9 +378,9 @@ private fun DashboardHeader(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "OMNIDECK",
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Black,
-                    letterSpacing = 1.sp,
+                    letterSpacing = 0.8.sp,
                     color = TextPrimary
                 )
                 Spacer(modifier = Modifier.width(4.dp))
@@ -440,42 +408,45 @@ private fun DashboardHeader(
             )
         }
 
-        // Action Buttons: Fit mode toggle, Refresh Rate badge, Setup, Tuning
+        // Action Buttons: Fullscreen toggle, Rate badge, Setup, Tuning
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-            if (isLandscape) {
-                // Quick Fit-to-Screen toggle
-                Box(
-                    modifier = Modifier
-                        .background(
-                            if (isFitMode) CyberEmerald.copy(alpha = 0.15f) else DarkStudioSurface,
-                            RoundedCornerShape(5.dp)
-                        )
-                        .border(1.dp, if (isFitMode) CyberEmerald else CardBorder, RoundedCornerShape(5.dp))
-                        .clickable { onToggleFitMode() }
-                        .padding(horizontal = 6.dp, vertical = 3.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.FitScreen,
-                            contentDescription = "Fit View",
-                            tint = if (isFitMode) CyberEmerald else TextMuted,
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text(
-                            text = if (isFitMode) "PANORÁMICA" else "SCROLL",
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isFitMode) CyberEmerald else TextMuted
-                        )
-                    }
+            // Fullscreen / Immersive Mode button (hides status & navigation bar like games)
+            Box(
+                modifier = Modifier
+                    .background(
+                        if (isFullscreen) CyberEmerald.copy(alpha = 0.15f) else DarkStudioSurface,
+                        RoundedCornerShape(5.dp)
+                    )
+                    .border(
+                        1.dp,
+                        if (isFullscreen) CyberEmerald else CardBorder,
+                        RoundedCornerShape(5.dp)
+                    )
+                    .clickable { onToggleFullscreen() }
+                    .padding(horizontal = 6.dp, vertical = 3.dp)
+                    .testTag("fullscreen_toggle_button")
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                        contentDescription = "Pantalla Completa",
+                        tint = if (isFullscreen) CyberEmerald else TextMuted,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Text(
+                        text = if (isFullscreen) "INMERSIVO" else "BARRA",
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isFullscreen) CyberEmerald else TextMuted
+                    )
                 }
             }
 
-            // Sampling rate badge (1s, 5s, etc.)
+            // Sampling rate badge (1s, 5s)
             Box(
                 modifier = Modifier
                     .background(DarkStudioSurface, RoundedCornerShape(5.dp))
@@ -485,7 +456,7 @@ private fun DashboardHeader(
             ) {
                 Text(
                     text = "$rateBadge RATE",
-                    fontSize = 9.sp,
+                    fontSize = 8.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace,
                     color = VoltYellow
@@ -496,14 +467,14 @@ private fun DashboardHeader(
             IconButton(
                 onClick = onOpenSetup,
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(26.dp)
                     .testTag("linux_setup_button")
             ) {
                 Icon(
                     imageVector = Icons.Default.Terminal,
                     contentDescription = "Linux Host Setup",
                     tint = CyberEmerald,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(17.dp)
                 )
             }
 
@@ -511,14 +482,14 @@ private fun DashboardHeader(
             IconButton(
                 onClick = onOpenConfig,
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(26.dp)
                     .testTag("customize_button")
             ) {
                 Icon(
                     imageVector = Icons.Default.Tune,
                     contentDescription = "Customize Dashboard",
                     tint = TextPrimary,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(17.dp)
                 )
             }
         }

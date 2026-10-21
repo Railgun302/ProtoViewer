@@ -99,7 +99,7 @@ fun GpuMetricsWidget(
             )
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Gauge + Key Telemetry
         Row(
@@ -112,7 +112,7 @@ fun GpuMetricsWidget(
                 maxValue = 100f,
                 label = "LOAD",
                 primaryColor = ElectricCyan,
-                sizeDp = 86.dp
+                sizeDp = 58.dp
             )
 
             // Right side stats: Core Temp, Hotspot, Power (W), Fan RPM

@@ -100,7 +100,7 @@ fun CpuMetricsWidget(
             )
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Gauge + Key Telemetry
         Row(
@@ -113,7 +113,7 @@ fun CpuMetricsWidget(
                 maxValue = 100f,
                 label = "CPU LOAD",
                 primaryColor = CyberEmerald,
-                sizeDp = 86.dp
+                sizeDp = 58.dp
             )
 
             // Right side stats: Package Temp, RAPL/Zenpower Wattage, RAM Usage
