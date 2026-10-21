@@ -19,6 +19,7 @@ if command -v adb &> /dev/null; then
     adb reverse tcp:8088 tcp:8088 || echo "[!] Advertencia: Dispositivo no detectado en ADB aún. Asegúrate de conectar el Moto Z por USB."
 fi
 
+RATE="${1:-1.0}"
 # Iniciar daemon
-echo "[OmniDeck] Iniciando servidor de telemetría..."
-python3 "$(dirname "$0")/omnideck_daemon.py" --tcp 8088
+echo "[OmniDeck] Iniciando servidor de telemetría a ${RATE}s intervalo..."
+python3 "$(dirname "$0")/omnideck_daemon.py" --tcp 8088 --rate "$RATE"

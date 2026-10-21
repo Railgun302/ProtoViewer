@@ -108,4 +108,13 @@ class ExampleRobolectricTest {
         assertEquals(20f, list.first(), 0.01f)
         assertEquals(60f, list.last(), 0.01f)
     }
+
+    @Test
+    fun `default display config uses 1 sec refresh rate`() {
+        val config = com.example.model.DisplayConfig()
+        assertEquals(com.example.model.RefreshRate.ONE_SEC, config.refreshRate)
+        assertEquals(1000L, config.refreshRate.intervalMs)
+        assertEquals(5000L, com.example.model.RefreshRate.FIVE_SEC.intervalMs)
+        assertTrue(config.forceLandscapeFit)
+    }
 }

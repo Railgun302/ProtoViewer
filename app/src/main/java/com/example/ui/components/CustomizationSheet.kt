@@ -139,13 +139,13 @@ fun CustomizationSheet(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = "${rate.hz} Hz",
-                                fontSize = 13.sp,
+                                text = rate.badge,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isSelected) CyberEmerald else TextPrimary
                             )
                             Text(
-                                text = "${rate.intervalMs}ms",
+                                text = "${(rate.intervalMs / 1000f).toInt().takeIf { it > 0 } ?: rate.intervalMs}s",
                                 fontSize = 9.sp,
                                 color = TextMuted
                             )

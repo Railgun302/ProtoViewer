@@ -275,7 +275,7 @@ class HardwareMonitor:
             }
         }
 
-def run_tcp_server(port=8088, interval=0.1):
+def run_tcp_server(port=8088, interval=1.0):
     monitor = HardwareMonitor()
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -283,6 +283,7 @@ def run_tcp_server(port=8088, interval=0.1):
     s.listen(1)
     print(f"\n=======================================================")
     print(f"  [OmniDeck Daemon] Servidor listo en 0.0.0.0:{port}")
+    print(f"  Tasa de actualización: {interval} seg (Bajo consumo de CPU y ADB)")
     print(f"  Paso siguiente: Ejecuta en otra terminal:")
     print(f"      adb reverse tcp:8088 tcp:8088")
     print(f"=======================================================\n")
@@ -291,7 +292,7 @@ def run_tcp_server(port=8088, interval=0.1):
     while True:
         try:
             conn, addr = s.accept()
-            print(f"[✓] Moto Z conectado desde: {addr} (Transmitiendo telemetría en tiempo real)")
+            print(f"[✓] Moto Z conectado desde: {addr} (Transmitiendo telemetría en tiempo real cada {interval}s)")
             while True:
                 payload = monitor.capture_snapshot()
                 line = json.dumps(payload) + "\n"
@@ -306,10 +307,10 @@ def run_tcp_server(port=8088, interval=0.1):
             print(f"[!] Error: {e}")
             time.sleep(1)
 
-def run_serial_stream(port_name='/dev/ttyACM0', baud=115200, interval=0.1):
+def run_serial_stream(port_name='/dev/ttyACM0', baud=115200, interval=1.0):
     import serial
     monitor = HardwareMonitor()
-    print(f"[+] Abriendo puerto serie USB en {port_name} a {baud} baudios...")
+    print(f"[+] Abriendo puerto serie USB en {port_name} a {baud} baudios ({interval}s intervalo)...")
     ser = serial.Serial(port_name, baud, timeout=1)
     while True:
         try:
@@ -325,7 +326,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="OmniDeck Telemetry Server para Arch Linux / CachyOS")
     parser.add_argument('--tcp', type=int, default=8088, help="Puerto TCP para streaming ADB (default: 8088)")
     parser.add_argument('--serial', type=str, default=None, help="Dispositivo serie USB (ej. /dev/ttyACM0)")
-    parser.add_argument('--rate', type=float, default=0.1, help="Intervalo en segundos (0.1 = 10Hz, 0.2 = 5Hz)")
+    parser.add_argument('--rate', type=float, default=1.0, help="Intervalo en segundos (1.0 = 1s recomendado, 5.0 = 5s ultra-ahorro)")
     args = parser.parse_args()
 
     if args.serial:

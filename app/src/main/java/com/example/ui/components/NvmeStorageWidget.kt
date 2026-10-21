@@ -64,9 +64,9 @@ fun NvmeStorageWidget(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(DarkStudioSurface, RoundedCornerShape(14.dp))
-            .border(1.dp, CardBorder, RoundedCornerShape(14.dp))
-            .padding(14.dp)
+            .background(DarkStudioSurface, RoundedCornerShape(12.dp))
+            .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
+            .padding(horizontal = 10.dp, vertical = 6.dp)
             .testTag("nvme_storage_card")
     ) {
         // NVMe Section Header

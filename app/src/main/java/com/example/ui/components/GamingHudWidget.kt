@@ -44,9 +44,9 @@ fun GamingHudWidget(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(DarkStudioSurface, RoundedCornerShape(14.dp))
-            .border(1.dp, CardBorder, RoundedCornerShape(14.dp))
-            .padding(14.dp)
+            .background(DarkStudioSurface, RoundedCornerShape(12.dp))
+            .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
+            .padding(horizontal = 10.dp, vertical = 8.dp)
             .testTag("gaming_hud_card")
     ) {
         // Card Header
@@ -147,9 +147,9 @@ fun GamingHudWidget(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         // Real-time Canvas Graph
-        FrametimeGraph(frametimes = frametimes)
+        FrametimeGraph(frametimes = frametimes, modifier = Modifier.weight(1f, fill = false))
     }
 }

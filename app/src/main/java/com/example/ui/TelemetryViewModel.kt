@@ -139,6 +139,10 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
         _uiState.update { it.copy(config = it.config.copy(useFahrenheit = !it.config.useFahrenheit)) }
     }
 
+    fun toggleForceLandscapeFit() {
+        _uiState.update { it.copy(config = it.config.copy(forceLandscapeFit = !it.config.forceLandscapeFit)) }
+    }
+
     fun showSetupSheet(show: Boolean) {
         _uiState.update { it.copy(isSetupSheetVisible = show) }
     }

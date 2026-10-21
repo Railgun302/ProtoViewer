@@ -37,9 +37,9 @@ class TelemetryConnectionManager(private val context: Context) {
 
     private val simulationEngine = SimulationEngine()
     private var activeMode: ConnectionMode = ConnectionMode.AUTO
-    private var refreshRate: RefreshRate = RefreshRate.BALANCED
+    private var refreshRate: RefreshRate = RefreshRate.ONE_SEC
 
-    fun start(mode: ConnectionMode = ConnectionMode.AUTO, rate: RefreshRate = RefreshRate.BALANCED) {
+    fun start(mode: ConnectionMode = ConnectionMode.AUTO, rate: RefreshRate = RefreshRate.ONE_SEC) {
         this.activeMode = mode
         this.refreshRate = rate
         workerJob?.cancel()

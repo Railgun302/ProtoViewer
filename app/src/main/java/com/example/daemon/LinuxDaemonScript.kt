@@ -8,7 +8,7 @@ object LinuxDaemonScript {
 
     const val ADB_REVERSE_CMD = "adb reverse tcp:8088 tcp:8088"
 
-    const val RUN_DAEMON_TCP_CMD = "python3 omnideck_daemon.py --tcp 8088"
+    const val RUN_DAEMON_TCP_CMD = "python3 omnideck_daemon.py --tcp 8088 --rate 1.0"
 
     const val RUN_DAEMON_SERIAL_CMD = "python3 omnideck_daemon.py --serial /dev/ttyACM0 --baud 115200"
 
@@ -355,7 +355,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="OmniDeck Telemetry Server for Arch Linux / CachyOS")
     parser.add_argument('--tcp', type=int, default=8088, help="TCP port for ADB stream (default: 8088)")
     parser.add_argument('--serial', type=str, default=None, help="USB serial port (e.g. /dev/ttyACM0)")
-    parser.add_argument('--rate', type=float, default=0.1, help="Update interval in seconds (default: 0.1s / 10Hz)")
+    parser.add_argument('--rate', type=float, default=1.0, help="Update interval in seconds (default: 1.0s)")
     args = parser.parse_args()
 
     if args.serial:

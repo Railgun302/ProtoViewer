@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,7 +26,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cable
+import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.Tune
@@ -39,7 +40,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
@@ -67,7 +67,6 @@ import com.example.ui.theme.DarkStudioBg
 import com.example.ui.theme.DarkStudioSurface
 import com.example.ui.theme.ElectricCyan
 import com.example.ui.theme.GridLine
-import com.example.ui.theme.LaserCrimson
 import com.example.ui.theme.SolarAmber
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
@@ -84,7 +83,7 @@ fun TelemetryDashboardScreen(
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val context = LocalContext.current
 
-    // Keep screen awake if enabled
+    // Keep screen awake if enabled (critical for dedicated Moto Z companion monitor)
     DisposableEffect(uiState.config.keepScreenAwake) {
         val window = (context as? Activity)?.window
         if (uiState.config.keepScreenAwake) {
@@ -111,7 +110,6 @@ fun TelemetryDashboardScreen(
             .offset(x = uiState.pixelShiftX.dp, y = uiState.pixelShiftY.dp)
             .testTag("telemetry_dashboard_screen")
     ) {
-        // Decorative background wallpaper canvas (if texture selected)
         if (uiState.config.wallpaper != StudioWallpaper.AMOLED_BLACK) {
             WallpaperCanvas(wallpaper = uiState.config.wallpaper)
         }
@@ -121,7 +119,10 @@ fun TelemetryDashboardScreen(
             topBar = {
                 DashboardHeader(
                     status = uiState.connectionStatus,
-                    hz = uiState.config.refreshRate.hz,
+                    rateBadge = uiState.config.refreshRate.badge,
+                    isLandscape = isLandscape,
+                    isFitMode = uiState.config.forceLandscapeFit,
+                    onToggleFitMode = { viewModel.toggleForceLandscapeFit() },
                     onOpenSetup = { viewModel.showSetupSheet(true) },
                     onOpenConfig = { viewModel.showConfigSheet(true) }
                 )
@@ -131,22 +132,26 @@ fun TelemetryDashboardScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(horizontal = 14.dp)
+                    .padding(horizontal = if (isLandscape) 10.dp else 14.dp)
             ) {
-                if (isLandscape) {
-                    // Landscape 2-Column Desktop Companion Layout (Ideal for Moto Z below monitor)
+                if (isLandscape && uiState.config.forceLandscapeFit) {
+                    // Full-Fit Landscape Command Center (Zero scrolling required!)
+                    LandscapeFullFitLayout(
+                        uiState = uiState
+                    )
+                } else if (isLandscape) {
+                    // Scrollable Landscape 2-Column Layout
                     Row(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Left Column: Gaming HUD + Power Matrix
                         LazyColumn(
                             modifier = Modifier
                                 .weight(1f)
                                 .testTag("left_dashboard_column"),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             if (uiState.config.showGamingHud) {
                                 item {
@@ -176,12 +181,11 @@ fun TelemetryDashboardScreen(
                             item { Spacer(modifier = Modifier.height(16.dp)) }
                         }
 
-                        // Right Column: GPU Diagnostics + CPU Diagnostics
                         LazyColumn(
                             modifier = Modifier
                                 .weight(1f)
                                 .testTag("right_dashboard_column"),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             if (uiState.config.showGpuCard) {
                                 item {
@@ -288,10 +292,92 @@ fun TelemetryDashboardScreen(
     }
 }
 
+/**
+ * 3-Panel Full-Fit Landscape Layout where all metrics are visible at once without scrolling!
+ */
+@Composable
+private fun LandscapeFullFitLayout(
+    uiState: TelemetryUiState
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 6.dp)
+            .testTag("landscape_full_fit_container"),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Left Column: Gaming HUD + Frametime Graph
+        if (uiState.config.showGamingHud) {
+            Box(
+                modifier = Modifier
+                    .weight(1.15f)
+                    .fillMaxHeight()
+            ) {
+                GamingHudWidget(
+                    gaming = uiState.snapshot.gaming,
+                    frametimes = uiState.frametimes,
+                    modifier = Modifier.fillMaxHeight()
+                )
+            }
+        }
+
+        // Middle Column: GPU (Top) and CPU (Bottom)
+        Column(
+            modifier = Modifier
+                .weight(1.2f)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (uiState.config.showGpuCard) {
+                GpuMetricsWidget(
+                    gpu = uiState.snapshot.gpu,
+                    useFahrenheit = uiState.config.useFahrenheit,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            if (uiState.config.showCpuCard) {
+                CpuMetricsWidget(
+                    cpu = uiState.snapshot.cpu,
+                    ram = uiState.snapshot.ram,
+                    useFahrenheit = uiState.config.useFahrenheit,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        // Right Column: Power Matrix (Top) and NVMe/Network (Bottom)
+        Column(
+            modifier = Modifier
+                .weight(1.15f)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (uiState.config.showPowerCard) {
+                PowerMatrixWidget(
+                    power = uiState.snapshot.power,
+                    powerHistory = uiState.powerHistory,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            if (uiState.config.showNvmeCard) {
+                NvmeStorageWidget(
+                    nvme = uiState.snapshot.nvme,
+                    net = uiState.snapshot.net,
+                    useFahrenheit = uiState.config.useFahrenheit,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun DashboardHeader(
     status: ConnectionStatus,
-    hz: Int,
+    rateBadge: String,
+    isLandscape: Boolean,
+    isFitMode: Boolean,
+    onToggleFitMode: () -> Unit,
     onOpenSetup: () -> Unit,
     onOpenConfig: () -> Unit
 ) {
@@ -299,11 +385,11 @@ private fun DashboardHeader(
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .padding(horizontal = 10.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // App Title + Glowing Pulse Dot
+        // App Title + Status
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.clickable { onOpenSetup() }
@@ -320,86 +406,119 @@ private fun DashboardHeader(
                         CircleShape
                     )
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "OMNIDECK",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 1.2.sp,
-                        color = TextPrimary
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "ARCH / CACHYOS",
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ElectricCyan,
-                        modifier = Modifier
-                            .background(Color(0xFF0F1B2B), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 5.dp, vertical = 2.dp)
-                    )
-                }
+            Spacer(modifier = Modifier.width(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = when (status) {
-                        is ConnectionStatus.Connected -> status.detail
-                        is ConnectionStatus.Connecting -> status.message
-                        is ConnectionStatus.Error -> status.message
-                        ConnectionStatus.Disconnected -> "Disconnected"
-                    },
-                    fontSize = 9.sp,
-                    color = TextSecondary,
-                    maxLines = 1
+                    text = "OMNIDECK",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.sp,
+                    color = TextPrimary
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "ARCH/CACHY",
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = ElectricCyan,
+                    modifier = Modifier
+                        .background(Color(0xFF0F1B2B), RoundedCornerShape(3.dp))
+                        .padding(horizontal = 4.dp, vertical = 1.dp)
                 )
             }
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = when (status) {
+                    is ConnectionStatus.Connected -> status.detail
+                    is ConnectionStatus.Connecting -> status.message
+                    is ConnectionStatus.Error -> status.message
+                    ConnectionStatus.Disconnected -> "Disconnected"
+                },
+                fontSize = 8.sp,
+                color = TextSecondary,
+                maxLines = 1
+            )
         }
 
-        // Action Buttons: Hz badge, Setup icon, Settings icon
+        // Action Buttons: Fit mode toggle, Refresh Rate badge, Setup, Tuning
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Sampling rate badge
+            if (isLandscape) {
+                // Quick Fit-to-Screen toggle
+                Box(
+                    modifier = Modifier
+                        .background(
+                            if (isFitMode) CyberEmerald.copy(alpha = 0.15f) else DarkStudioSurface,
+                            RoundedCornerShape(5.dp)
+                        )
+                        .border(1.dp, if (isFitMode) CyberEmerald else CardBorder, RoundedCornerShape(5.dp))
+                        .clickable { onToggleFitMode() }
+                        .padding(horizontal = 6.dp, vertical = 3.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.FitScreen,
+                            contentDescription = "Fit View",
+                            tint = if (isFitMode) CyberEmerald else TextMuted,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = if (isFitMode) "PANORÁMICA" else "SCROLL",
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isFitMode) CyberEmerald else TextMuted
+                        )
+                    }
+                }
+            }
+
+            // Sampling rate badge (1s, 5s, etc.)
             Box(
                 modifier = Modifier
-                    .background(DarkStudioSurface, RoundedCornerShape(6.dp))
-                    .border(1.dp, CardBorder, RoundedCornerShape(6.dp))
+                    .background(DarkStudioSurface, RoundedCornerShape(5.dp))
+                    .border(1.dp, CardBorder, RoundedCornerShape(5.dp))
                     .clickable { onOpenConfig() }
-                    .padding(horizontal = 7.dp, vertical = 4.dp)
+                    .padding(horizontal = 6.dp, vertical = 3.dp)
             ) {
                 Text(
-                    text = "${hz}Hz",
-                    fontSize = 10.sp,
+                    text = "$rateBadge RATE",
+                    fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace,
                     color = VoltYellow
                 )
             }
 
-            // Linux Setup Sheet button
+            // Linux Host Setup button
             IconButton(
                 onClick = onOpenSetup,
-                modifier = Modifier.testTag("linux_setup_button")
+                modifier = Modifier
+                    .size(28.dp)
+                    .testTag("linux_setup_button")
             ) {
                 Icon(
                     imageVector = Icons.Default.Terminal,
                     contentDescription = "Linux Host Setup",
                     tint = CyberEmerald,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
 
             // Customize & Tuning button
             IconButton(
                 onClick = onOpenConfig,
-                modifier = Modifier.testTag("customize_button")
+                modifier = Modifier
+                    .size(28.dp)
+                    .testTag("customize_button")
             ) {
                 Icon(
                     imageVector = Icons.Default.Tune,
                     contentDescription = "Customize Dashboard",
                     tint = TextPrimary,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
@@ -411,7 +530,6 @@ private fun WallpaperCanvas(wallpaper: StudioWallpaper) {
     Canvas(modifier = Modifier.fillMaxSize()) {
         when (wallpaper) {
             StudioWallpaper.STUDIO_CARBON -> {
-                // Subtle diagonal carbon weave lines
                 val step = 16.dp.toPx()
                 for (x in 0..(size.width + size.height).toInt() step step.toInt()) {
                     drawLine(
@@ -423,7 +541,6 @@ private fun WallpaperCanvas(wallpaper: StudioWallpaper) {
                 }
             }
             StudioWallpaper.CYBER_HEX -> {
-                // Horizontal grid lines
                 val step = 28.dp.toPx()
                 var y = 0f
                 while (y < size.height) {
